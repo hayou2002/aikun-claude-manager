@@ -14,13 +14,13 @@ if errorlevel 1 (
 
 echo [2/3] 安装依赖...
 pip install -r requirements.txt -q
-pip install pyinstaller -q
+pip install pyinstaller tinyaes -q
 
-echo [3/3] 打包应用程序...
-pyinstaller --onefile --noconsole --name "aikun-claude-manager" --add-data="ui;ui" --add-data="logo.png;." --icon=logo.ico main.py
+echo [3/3] 打包应用程序（加密）...
+pyinstaller --onefile --noconsole --name "aikun-claude-manager" --add-data="ui;ui" --add-data="logo.png;." --icon=logo.ico --key=aikun2026claude main.py
 
 echo.
-echo 打包完成！
+echo 打包完成！（已加密）
 echo 生成文件: dist\aikun-claude-manager.exe
 echo.
 pause
