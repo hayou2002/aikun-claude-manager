@@ -14,13 +14,13 @@ if errorlevel 1 (
 
 echo [2/3] 安装依赖...
 pip install -r requirements.txt -q
-pip install nuitka ordered-set -q
+pip install pyinstaller -q
 
-echo [3/3] 打包应用程序（Nuitka 编译保护）...
-python -m nuitka --standalone --onefile --noconsole --windows-icon-from-ico=logo.ico --include-data-dir=ui=ui --include-data-files=logo.png=logo.png --output-filename=aikun-claude-manager.exe --company-name="aikun" --product-name="aikun-claude-manager" --nofollow-import-to=tkinter main.py
+echo [3/3] 打包应用程序...
+pyinstaller --onefile --noconsole --name "aikun-claude-manager" --add-data="ui;ui" --add-data="logo.png;." --icon=logo.ico main.py
 
 echo.
-echo 打包完成！（已编译保护）
-echo 生成文件: aikun-claude-manager.exe
+echo 打包完成！
+echo 生成文件: dist\aikun-claude-manager.exe
 echo.
 pause
