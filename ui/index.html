@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 管理工具</title>
+<style>
+/* ============================================================
+   设计变量
+   ============================================================ */
+:root {
+  --bg:         #0f1117;
+  --bg-card:    #1a1d27;
+  --bg-hover:   #252836;
+  --bg-input:   #12141c;
+  --border:     #2a2d3a;
+  --text:       #e4e6ed;
+  --text-dim:   #8b8fa3;
+  --accent:     #6c5ce7;
+  --accent-l:   #a29bfe;
+  --green:      #00cec9;
+  --green-dim:  #00b8942a;
+  --red:        #ff6b6b;
+  --red-dim:    #ff6b6b2a;
+  --yellow:     #feca57;
+  --yellow-dim: #feca572a;
+  --blue:       #54a0ff;
+  --radius:     10px;
+  --radius-sm:  6px;
+  --shadow:     0 2px 16px rgba(0,0,0,.3);
+  --transition: all .2s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  font-size: 14px;
+}
+
+/* ============================================================
+   侧边栏
+   ============================================================ */
+.sidebar {
+  width: 220px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-brand img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.sidebar-brand h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-l);
+  letter-spacing: .5px;
+}
+
+.sidebar-brand small {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: block;
+  margin-top: 2px;
+}
+
+.nav { flex: 1; padding: 12px 10px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: var(--transition);
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+.nav-item:hover { background: var(--bg-hover); color: var(--text); }
+
+.nav-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+/* ============================================================
+   主内容区
+   ============================================================ */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+
+.main::-webkit-scrollbar { width: 0; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb { background: transparent; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: var(--text);
+}
+
+/* ============================================================
+   卡片系统
+   ============================================================ */
+.cards { display: grid; gap: 16px; margin-bottom: 24px; }
+.cards-2 { grid-template-columns: 1fr 1fr; }
+.cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cards-4 { grid-template-columns: repeat(4, 1fr); }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: var(--transition);
+}
+
+.card:hover { border-color: var(--accent); }
+
+.card-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.card-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* ============================================================
+   按钮
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.btn:hover { border-color: var(--accent); background: var(--bg-hover); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover { background: #5a4bd6; }
+
+.btn-green {
+  background: var(--green);
+  border-color: var(--green);
+  color: #000;
+}
+
+.btn-green:hover { background: #00b8b4; }
+
+.btn-red {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.btn-red:hover { background: #e55a5a; }
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-icon {
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+}
+
+/* 思考程度按钮 */
+.effort-btn {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.effort-btn:hover {
+  transform: translateY(-2px);
+}
+
+.effort-btn-active {
+  border-color: var(--accent) !important;
+  background: rgba(124, 77, 255, 0.1) !important;
+  box-shadow: 0 0 10px rgba(124, 77, 255, 0.2);
+}
+
+/* ============================================================
+   表单元素
+   ============================================================ */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, .2);
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+}
+
+
+
+.model-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: var(--shadow);
+}
+
+.model-dropdown.show {
+  display: block;
+}
+
+.model-category {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+}
+
+.model-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: var(--transition);
+}
+
+.model-item:hover {
+  background: var(--bg-hover);
+  color: var(--accent-l);
+}
+  color: var(--text);
+  font-size: 13px;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, .2);
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* ============================================================
+   状态指示
+   ============================================================ */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.status-ok {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.status-error {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.status-warning {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ============================================================
+   表格
+   ============================================================ */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: var(--bg-card);
+}
+
+.table td {
+  font-size: 13px;
+}
+
+.table tr:hover td {
+  background: var(--bg-hover);
+}
+
+/* ============================================================
+   工作文件夹分组
+   ============================================================ */
+.folder-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.folder-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-hover);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.folder-group-header:hover {
+  background: var(--bg-input);
+}
+
+.folder-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.folder-group-arrow {
+  transition: transform .2s ease;
+  font-size: 12px;
+}
+
+.folder-group-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.folder-group-content {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .3s ease;
+}
+
+.folder-group-content.expanded {
+  max-height: 1000px;
+  padding: 8px 0;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 10px 32px;
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 3px solid transparent;
+}
+
+.folder-item:hover {
+  background: var(--bg-hover);
+  border-left-color: var(--accent);
+}
+
+.folder-item.selected {
+  background: linear-gradient(90deg, rgba(108, 92, 231, 0.15), transparent);
+  border-left-color: var(--accent);
+}
+
+.folder-item.selected .folder-item-name {
+  color: var(--accent-l);
+  font-weight: 600;
+}
+
+.folder-item-path {
+  font-size: 13px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-item-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+.folder-item:hover .folder-item-actions {
+  opacity: 1;
+}
+
+.folder-item-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.folder-item-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-l);
+}
+
+/* ============================================================
+   工具提示
+   ============================================================ */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+  z-index: 1000;
+  margin-bottom: 8px;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ============================================================
+   加载状态
+   ============================================================ */
+.loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   消息提示
+   ============================================================ */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+  z-index: 10000;
+  transform: translateX(120%);
+  transition: transform .3s ease;
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast-success { border-color: var(--green); }
+.toast-error { border-color: var(--red); }
+.toast-warning { border-color: var(--yellow); }
+
+/* ============================================================
+   模态框
+   ============================================================ */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+}
+
+.modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: var(--shadow);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 60px;
+  }
+  
+  .sidebar-brand h1,
+  .sidebar-brand small,
+  .nav-item span {
+    display: none;
+  }
+  
+  .sidebar-brand {
+    justify-content: center;
+    padding: 16px 10px;
+  }
+  
+  .nav-item {
+    justify-content: center;
+    padding: 10px;
+  }
+  
+  .cards-2,
+  .cards-3,
+  .cards-4 {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <img src="data:image/png;base64,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" alt="Claude Logo">
+    <div>
+      <h1>Claude Manager</h1>
+      <small>Code 管理工具</small>
+    </div>
+  </div>
+  
+  <nav class="nav">
+    <div class="nav-item active" data-page="dashboard">
+      <span class="nav-icon">📊</span>
+      <span>仪表盘</span>
+    </div>
+    <div class="nav-item" data-page="api">
+      <span class="nav-icon">🔗</span>
+      <span>API 配置</span>
+    </div>
+    <div class="nav-item" data-page="patch">
+      <span class="nav-icon">🌐</span>
+      <span>汉化补丁</span>
+    </div>
+    <div class="nav-item" data-page="config">
+      <span class="nav-icon">⚙️</span>
+      <span>配置管理</span>
+    </div>
+    <div class="nav-item" data-page="tools">
+      <span class="nav-icon">🛠️</span>
+      <span>实用工具</span>
+    </div>
+  </nav>
+</div>
+
+<!-- 主内容区 -->
+<div class="main">
+  <!-- 仪表盘页面 -->
+  <div id="dashboard" class="page active">
+    <h2 class="page-title">仪表盘</h2>
+    
+    <div class="cards cards-4">
+      <div class="card">
+        <div class="card-label">Claude 状态</div>
+        <div class="card-value" id="claude-status">检测中...</div>
+        <div class="card-sub" id="claude-version">正在扫描安装</div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">API 连接</div>
+        <div class="card-value" id="api-status">检测中...</div>
+        <div class="card-sub" id="api-endpoint">正在检查配置</div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">当前模型</div>
+        <div class="card-value" id="current-model">加载中...</div>
+        <div class="card-sub" id="model-provider">正在读取配置</div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">汉化补丁</div>
+        <div class="card-value" id="patch-status">检测中...</div>
+        <div class="card-sub" id="patch-detail">正在检查状态</div>
+      </div>
+    </div>
+    
+    <div class="cards cards-3">
+      <div class="card">
+        <div class="card-label">快速操作</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+          <div id="selected-folder-display" style="font-size: 11px; color: var(--text-dim); text-align: center; min-height: 16px;">
+            未选择工作文件夹
+          </div>
+          <button class="btn btn-primary" onclick="openClaude()" style="width: 100%;">
+            🚀 启动 Claude
+          </button>
+          <button class="btn" onclick="openConfigFolder()" style="width: 100%;">
+            📁 打开配置
+          </button>
+          <button class="btn" onclick="refreshDashboard()" style="width: 100%;">
+            🔄 刷新状态
+          </button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">思考程度</div>
+        <div class="card-value" id="current-effort" style="font-size: 14px;">加载中...</div>
+        <div class="card-sub">快速切换思考深度</div>
+        <div style="display: flex; gap: 6px; margin-top: 10px;">
+          <button class="btn btn-sm" onclick="quickSetEffort('low')" style="flex: 1; padding: 6px 8px;">🟢 Low</button>
+          <button class="btn btn-sm" onclick="quickSetEffort('medium')" style="flex: 1; padding: 6px 8px;">🟡 Med</button>
+          <button class="btn btn-sm" onclick="quickSetEffort('high')" style="flex: 1; padding: 6px 8px;">🔴 High</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">账户信息</div>
+        <div style="margin-top: 12px;">
+          <div id="login-section">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>余额:</span>
+              <span id="balance" style="color: var(--green); font-weight: 600;">未登录</span>
+            </div>
+            <button class="btn" onclick="showLoginModal()" style="width: 100%;">
+              🔑 登录查询余额
+            </button>
+          </div>
+          <div id="logged-section" style="display: none;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>余额:</span>
+              <span id="balance-logged" style="color: var(--green); font-weight: 600;">查询中...</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>用户:</span>
+              <span id="username" style="color: var(--text-dim);">-</span>
+            </div>
+            <button class="btn" onclick="queryBalance()" style="width: 100%;">
+              💰 刷新余额
+            </button>
+            <button class="btn btn-green" onclick="openRecharge()" style="width: 100%; margin-top: 6px;">
+              💳 充值
+            </button>
+            <button class="btn btn-red" onclick="logoutAikun()" style="width: 100%; margin-top: 6px;">
+              🚪 退出登录
+            </button>
+          </div>
+          <button class="btn" onclick="openAikunApi()" style="width: 100%; margin-top: 6px;">
+            🌐 访问 AI坤 API
+          </button>
+        </div>
+      </div>
+      
+      <div class="card" style="display: none;">
+        <div class="card-label">系统信息</div>
+        <div id="system-info" style="margin-top: 12px;">
+          <div>平台: <span id="platform-info">检测中...</span></div>
+          <div>配置文件: <span id="config-file">加载中...</span></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 工作文件夹专区 -->
+    <div class="card" style="margin-top: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div class="card-label" style="margin-bottom: 0;">工作文件夹</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm" onclick="selectFolderDialog()">📁 浏览文件夹</button>
+          <button class="btn btn-sm" onclick="addGroup()">➕ 新建分组</button>
+        </div>
+      </div>
+      
+      <div id="work-folders-container">
+        <!-- 工作文件夹分组将在这里动态加载 -->
+      </div>
+      
+      <div style="margin-top: 12px; padding: 8px 12px; background: var(--bg-hover); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dim);">
+        💡 选中文件夹后，点击「启动 Claude」将从对应文件夹启动
+      </div>
+    </div>
+  </div>
+  
+  <!-- API 配置页面 -->
+  <div id="api" class="page">
+    <h2 class="page-title">API 配置</h2>
+    
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="form-group">
+        <label class="form-label">API Key</label>
+        <input type="password" class="form-input" id="api-key" placeholder="请输入您的 API Key">
+        <div class="form-hint" style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">Base URL: https://aikun.cnzc.qzz.io/v1 (OpenAI 兼容格式)</div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button class="btn btn-primary" onclick="saveApiConfig()">
+          💾 保存配置
+        </button>
+        <button class="btn" onclick="testApiConnection()">
+          🔌 测试连接
+        </button>
+        <button class="btn" onclick="fetchAvailableModels()">
+          📋 获取可用模型
+        </button>
+      </div>
+      
+      <div id="available-models" style="margin-top: 16px; display: none;">
+        <div class="card-label">可用模型列表</div>
+        <div id="models-list" style="margin-top: 8px; max-height: 200px; overflow-y: auto; font-size: 12px;"></div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-label">模型配置</div>
+      <div class="form-hint" style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">手动填写模型名称，可点击「获取可用模型」查看可用模型</div>
+      
+      <div class="form-group">
+        <label class="form-label">默认模型 (必选)</label>
+        <input type="text" class="form-input" id="model-default" placeholder="请输入默认模型名称，如 claude-sonnet-4-20250514">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Sonnet 模型 (可选)</label>
+        <input type="text" class="form-input" id="model-sonnet" placeholder="可选">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Opus 模型 (可选)</label>
+        <input type="text" class="form-input" id="model-opus" placeholder="可选">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Haiku 模型 (可选)</label>
+        <input type="text" class="form-input" id="model-haiku" placeholder="可选">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Fable 模型 (可选)</label>
+        <input type="text" class="form-input" id="model-fable" placeholder="可选">
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button class="btn btn-primary" onclick="saveModelConfig()">
+          💾 保存模型配置
+        </button>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-label">思考程度设置</div>
+      <div class="form-hint" style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">设置 Claude Code 的思考深度，影响回答质量和速度</div>
+      
+      <div class="form-group">
+        <label class="form-label">默认思考程度</label>
+        <div class="btn-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn effort-btn" data-level="low" onclick="selectEffortLevel('low')">
+            🟢 Low - 快速回答
+          </button>
+          <button class="btn effort-btn" data-level="medium" onclick="selectEffortLevel('medium')">
+            🟡 Medium - 平衡模式
+          </button>
+          <button class="btn effort-btn effort-btn-active" data-level="high" onclick="selectEffortLevel('high')">
+            🔴 High - 深度思考
+          </button>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button class="btn btn-primary" onclick="saveEffortLevel()">
+          💾 保存思考程度
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 汉化补丁页面 -->
+  <div id="patch" class="page">
+    <h2 class="page-title">汉化补丁</h2>
+    
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-label">补丁状态</div>
+      <div id="patch-status-detail" style="margin-top: 16px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+          <span>安装类型</span>
+          <span id="patch-install-type" style="font-weight: 600;">检测中...</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+          <span>Claude 版本</span>
+          <span id="patch-binary-version" style="font-weight: 600;">检测中...</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+          <span>二进制补丁</span>
+          <span id="patch-binary-status" style="font-weight: 600;">检测中...</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+          <span>汉化仓库</span>
+          <span id="patch-repo-status" style="font-weight: 600;">检测中...</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+          <span>插件状态</span>
+          <span id="patch-plugin-status" style="font-weight: 600;">检测中...</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+          <span>综合状态</span>
+          <span id="patch-overall-status" style="font-weight: 700; font-size: 14px;">检测中...</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-label">操作</div>
+      <div style="display: flex; gap: 12px; margin-top: 16px;">
+        <button class="btn btn-primary" onclick="installZhcnRepo()" style="flex: 1;">
+          📦 安装仓库
+        </button>
+        <button class="btn btn-green" onclick="applyPatch()" style="flex: 1;">
+          ✅ 应用补丁
+        </button>
+        <button class="btn btn-red" onclick="removePatch()" style="flex: 1;">
+          ❌ 移除补丁
+        </button>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 12px;">
+        <button class="btn" onclick="killClaude()" style="flex: 1;">
+          🔪 关闭 Claude
+        </button>
+        <button class="btn" onclick="togglePlugin(true)" style="flex: 1;">
+          ✅ 启用插件
+        </button>
+        <button class="btn" onclick="togglePlugin(false)" style="flex: 1;">
+          ❌ 禁用插件
+        </button>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-label">说明</div>
+      <div style="margin-top: 12px; color: var(--text-dim); font-size: 13px;">
+        <p>汉化补丁会将 Claude Code 的界面语言切换为中文，并优化部分交互体验。</p>
+        <p style="margin-top: 8px;">⚠️ Windows 原生安装需要<strong>先关闭 Claude Code</strong>才能应用/移除二进制补丁。</p>
+        <p style="margin-top: 8px;">补丁来源: <a href="#" onclick="openUrl('https://github.com/taekchef/claude-code-zh-cn')" style="color: var(--accent-l);">claude-code-zh-cn</a></p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 配置管理页面 -->
+  <div id="config" class="page">
+    <h2 class="page-title">配置管理</h2>
+    
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-label">完整配置 (JSON)</div>
+      <textarea class="form-textarea" id="full-config" style="min-height: 300px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px;"></textarea>
+      
+      <div style="display: flex; gap: 12px; margin-top: 16px;">
+        <button class="btn btn-primary" onclick="saveFullConfig()">
+          💾 保存配置
+        </button>
+        <button class="btn" onclick="loadFullConfig()">
+          🔄 重新加载
+        </button>
+      </div>
+    </div>
+    
+    <div class="cards cards-2">
+      <div class="card">
+        <div class="card-label">环境变量</div>
+        <div id="env-vars" style="margin-top: 12px;">
+          <div class="text-dim">加载中...</div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">权限规则</div>
+        <div id="permissions" style="margin-top: 12px;">
+          <div class="text-dim">加载中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 实用工具页面 -->
+  <div id="tools" class="page">
+    <h2 class="page-title">实用工具</h2>
+    
+    <div class="cards cards-2">
+      <div class="card">
+        <div class="card-label">快速启动</div>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+          <button class="btn btn-primary" onclick="openClaude()" style="width: 100%;">
+            🚀 启动 Claude Code
+          </button>
+          <button class="btn" onclick="openConfigFolder()" style="width: 100%;">
+            📁 打开配置文件夹
+          </button>
+          <button class="btn" onclick="openUrl('https://docs.anthropic.com')" style="width: 100%;">
+            📚 官方文档
+          </button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-label">诊断工具</div>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+          <button class="btn" onclick="scanClaude()" style="width: 100%;">
+            🔍 扫描 Claude 安装
+          </button>
+          <button class="btn" onclick="refreshDashboard()" style="width: 100%;">
+            🔄 刷新所有状态
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 消息提示 -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ============================================================
+//  全局状态
+// ============================================================
+
+let currentPage = 'dashboard';
+let dashboardData = null;
+
+// ============================================================
+//  页面导航
+// ============================================================
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    switchPage(page);
+  });
+});
+
+function switchPage(page) {
+  // 更新导航状态
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.page === page);
+  });
+  
+  // 更新页面显示
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.toggle('active', p.id === page);
+  });
+  
+  currentPage = page;
+  
+  // 加载页面数据
+  if (page === 'dashboard') refreshDashboard();
+  else if (page === 'api') loadApiConfig();
+  else if (page === 'patch') loadPatchStatus();
+  else if (page === 'config') loadFullConfig();
+}
+
+// ============================================================
+//  仪表盘
+// ============================================================
+
+async function refreshDashboard() {
+  try {
+    const data = await pywebview.api.get_dashboard();
+    if (data.ok) {
+      dashboardData = data;
+      updateDashboardUI(data);
+      // 自动查询余额
+      queryBalance();
+    } else {
+      showToast('获取仪表盘数据失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('调用失败: ' + e.message, 'error');
+  }
+}
+
+function updateDashboardUI(data) {
+  // Claude 状态
+  const claudeStatus = document.getElementById('claude-status');
+  const claudeVersion = document.getElementById('claude-version');
+  
+  if (data.claude_installed) {
+    claudeStatus.innerHTML = '<span class="status status-ok"><span class="status-dot"></span>已安装</span>';
+    claudeVersion.textContent = data.claude_version || '版本未知';
+  } else {
+    claudeStatus.innerHTML = '<span class="status status-error"><span class="status-dot"></span>未安装</span>';
+    claudeVersion.textContent = '请安装 Claude Code';
+  }
+  
+  // API 状态
+  const apiStatus = document.getElementById('api-status');
+  const apiEndpoint = document.getElementById('api-endpoint');
+  
+  if (data.has_api) {
+    apiStatus.innerHTML = '<span class="status status-ok"><span class="status-dot"></span>已配置</span>';
+    apiEndpoint.textContent = data.base_url || '未设置';
+  } else {
+    apiStatus.innerHTML = '<span class="status status-warning"><span class="status-dot"></span>未配置</span>';
+    apiEndpoint.textContent = '请配置 API';
+  }
+  
+  // 当前模型
+  document.getElementById('current-model').textContent = data.model || '未设置';
+  document.getElementById('model-provider').textContent = data.base_url ? '通过 API 中转' : '直连 Anthropic';
+  
+  // 思考程度
+  const effortLevel = data.effort_level || 'medium';
+  currentEffortLevel = effortLevel; // 更新全局变量
+  const effortDisplay = document.getElementById('current-effort');
+  if (effortDisplay) {
+    const effortLabels = {
+      'low': '🟢 Low - 快速回答',
+      'medium': '🟡 Medium - 平衡模式',
+      'high': '🔴 High - 深度思考'
+    };
+    effortDisplay.textContent = effortLabels[effortLevel] || effortLevel;
+  }
+  // 更新API配置页面的按钮状态
+  document.querySelectorAll('.effort-btn').forEach(btn => {
+    btn.classList.remove('effort-btn-active');
+  });
+  const activeBtn = document.querySelector(`.effort-btn[data-level="${effortLevel}"]`);
+  if (activeBtn) {
+    activeBtn.classList.add('effort-btn-active');
+  }
+  
+  // 汉化补丁
+  const patchStatus = document.getElementById('patch-status');
+  const patchDetail = document.getElementById('patch-detail');
+  const patchText = data.patch_status || '未知';
+  
+  if (patchText.includes('已打补丁')) {
+    patchStatus.innerHTML = '<span class="status status-ok"><span class="status-dot"></span>已打补丁</span>';
+  } else if (patchText.includes('未打补丁') || patchText.includes('未安装')) {
+    patchStatus.innerHTML = '<span class="status status-error"><span class="status-dot"></span>' + patchText + '</span>';
+  } else {
+    patchStatus.innerHTML = '<span class="status status-warning"><span class="status-dot"></span>' + patchText + '</span>';
+  }
+  patchDetail.textContent = patchText;
+  
+  // 系统信息
+  document.getElementById('platform-info').textContent = data.platform || '未知';
+  document.getElementById('config-file').textContent = data.config_file || '未知';
+}
+
+// ============================================================
+//  API 配置
+// ============================================================
+
+// 全局变量存储模型列表
+let modelList = [];
+let currentDropdown = null;
+
+async function loadApiConfig() {
+  try {
+    const data = await pywebview.api.get_api_config();
+    if (data.ok) {
+      document.getElementById('api-key').value = data.api_key || '';
+      // 加载已保存的模型配置
+      document.getElementById('model-default').value = data.model || '';
+      document.getElementById('model-sonnet').value = data.sonnet_model || '';
+      document.getElementById('model-opus').value = data.opus_model || '';
+      document.getElementById('model-haiku').value = data.haiku_model || '';
+      document.getElementById('model-fable').value = data.fable_model || '';
+    }
+    // 加载思考程度
+    await loadEffortLevel();
+  } catch (e) {
+    showToast('加载 API 配置失败: ' + e.message, 'error');
+  }
+}
+
+async function saveApiConfig() {
+  const config = {
+    api_key: document.getElementById('api-key').value
+  };
+  
+  try {
+    const data = await pywebview.api.save_api_config(config);
+    if (data.ok) {
+      showToast('API 配置已保存', 'success');
+    } else {
+      showToast('保存失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+async function saveModelConfig() {
+  const config = {
+    model: document.getElementById('model-default').value,
+    sonnet_model: document.getElementById('model-sonnet').value,
+    opus_model: document.getElementById('model-opus').value,
+    haiku_model: document.getElementById('model-haiku').value,
+    fable_model: document.getElementById('model-fable').value
+  };
+  
+  try {
+    const data = await pywebview.api.save_model_config(config);
+    if (data.ok) {
+      showToast('模型配置已保存', 'success');
+    } else {
+      showToast('保存失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+// 思考程度相关函数
+let currentEffortLevel = 'high';
+
+function selectEffortLevel(level) {
+  currentEffortLevel = level;
+  // 更新按钮样式
+  document.querySelectorAll('.effort-btn').forEach(btn => {
+    btn.classList.remove('effort-btn-active');
+  });
+  document.querySelector(`.effort-btn[data-level="${level}"]`).classList.add('effort-btn-active');
+  showToast(`已选择思考程度: ${level}`, 'success');
+}
+
+async function saveEffortLevel() {
+  try {
+    const data = await pywebview.api.save_effort_level(currentEffortLevel);
+    if (data.ok) {
+      showToast(data.msg, 'success');
+    } else {
+      showToast('保存失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+async function loadEffortLevel() {
+  try {
+    const data = await pywebview.api.get_effort_level();
+    if (data.ok) {
+      currentEffortLevel = data.level;
+      document.querySelectorAll('.effort-btn').forEach(btn => {
+        btn.classList.remove('effort-btn-active');
+      });
+      document.querySelector(`.effort-btn[data-level="${data.level}"]`).classList.add('effort-btn-active');
+    }
+  } catch (e) {
+    console.error('加载思考程度失败:', e);
+  }
+}
+
+// 仪表盘快捷设置思考程度
+async function quickSetEffort(level) {
+  try {
+    const data = await pywebview.api.save_effort_level(level);
+    if (data.ok) {
+      showToast(`思考程度已设置为: ${level}`, 'success');
+      refreshDashboard(); // 刷新仪表盘
+    } else {
+      showToast('设置失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('设置失败: ' + e.message, 'error');
+  }
+}
+
+async function testApiConnection() {
+  const config = {
+    api_key: document.getElementById('api-key').value
+  };
+  
+  try {
+    const data = await pywebview.api.test_api_connection(config);
+    if (data.ok) {
+      showToast('连接成功', 'success');
+    } else {
+      showToast('连接失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('测试失败: ' + e.message, 'error');
+  }
+}
+
+async function fetchAvailableModels() {
+  const config = {
+    api_key: document.getElementById('api-key').value
+  };
+  
+  try {
+    const data = await pywebview.api.fetch_available_models(config);
+    if (data.ok) {
+      const modelsDiv = document.getElementById('available-models');
+      const listDiv = document.getElementById('models-list');
+      
+      if (data.models.length > 0) {
+        listDiv.innerHTML = data.models.map(m => 
+          `<div style="padding: 4px 0; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="selectModel('${m.id}')">${m.id} <span style="color: var(--text-dim); font-size: 11px;">(${m.owned_by})</span></div>`
+        ).join('');
+        modelsDiv.style.display = 'block';
+        showToast(`已获取 ${data.models.length} 个可用模型`, 'success');
+      } else {
+        listDiv.innerHTML = '<div style="color: var(--text-dim);">暂无可用模型</div>';
+        modelsDiv.style.display = 'block';
+      }
+    } else {
+      showToast('获取模型列表失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('获取模型列表失败: ' + e.message, 'error');
+  }
+}
+
+function selectModel(modelId) {
+  document.getElementById('model-default').value = modelId;
+  showToast(`已选择模型: ${modelId}`, 'success');
+}
+
+async function fetchModelList() {
+  const config = {
+    api_key: document.getElementById('api-key').value
+  };
+  
+  try {
+    const data = await pywebview.api.get_model_list(config);
+    if (data.ok) {
+      modelList = data.models;
+      showToast(`已获取 ${modelList.length} 个模型`, 'success');
+    } else {
+      showToast('获取模型列表失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('获取失败: ' + e.message, 'error');
+  }
+}
+
+function showModelDropdown(type) {
+  // 关闭其他下拉列表
+  if (currentDropdown) {
+    currentDropdown.classList.remove('show');
+  }
+  
+  const dropdown = document.getElementById(`dropdown-${type}`);
+  if (!dropdown) return;
+  
+  // 如果模型列表为空，提示先获取
+  if (modelList.length === 0) {
+    dropdown.innerHTML = '<div class="model-item" style="color: var(--text-dim);">请先点击「获取模型列表」</div>';
+    dropdown.classList.add('show');
+    currentDropdown = dropdown;
+    return;
+  }
+  
+  // 按系列分类模型
+  const categories = {};
+  modelList.forEach(model => {
+    let category = '其他';
+    if (model.includes('sonnet')) category = 'Sonnet 系列';
+    else if (model.includes('opus')) category = 'Opus 系列';
+    else if (model.includes('haiku')) category = 'Haiku 系列';
+    else if (model.includes('fable')) category = 'Fable 系列';
+    
+    if (!categories[category]) categories[category] = [];
+    categories[category].push(model);
+  });
+  
+  // 生成下拉列表内容
+  let html = '';
+  const categoryOrder = ['Sonnet 系列', 'Opus 系列', 'Haiku 系列', 'Fable 系列', '其他'];
+  
+  categoryOrder.forEach(category => {
+    if (categories[category]) {
+      html += `<div class="model-category">${category}</div>`;
+      categories[category].forEach(model => {
+        html += `<div class="model-item" onclick="selectModel('${type}', '${model}')">${model}</div>`;
+      });
+    }
+  });
+  
+  dropdown.innerHTML = html;
+  dropdown.classList.add('show');
+  currentDropdown = dropdown;
+}
+
+function selectModel(type, model) {
+  const input = document.getElementById(`model-${type}`);
+  if (input) {
+    input.value = model;
+  }
+  
+  // 关闭下拉列表
+  if (currentDropdown) {
+    currentDropdown.classList.remove('show');
+    currentDropdown = null;
+  }
+}
+
+// 点击其他地方关闭下拉列表
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.select-wrapper') && currentDropdown) {
+    currentDropdown.classList.remove('show');
+    currentDropdown = null;
+  }
+});
+
+// ============================================================
+//  余额查询
+// ============================================================
+
+async function queryBalance() {
+  try {
+    const data = await pywebview.api.query_balance();
+    if (data.ok) {
+      document.getElementById('balance').textContent = `¥${data.balance.toFixed(2)}`;
+      showToast('余额查询成功', 'success');
+    } else {
+      document.getElementById('balance').textContent = '查询失败';
+      showToast('余额查询失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    document.getElementById('balance').textContent = '查询失败';
+    showToast('余额查询失败: ' + e.message, 'error');
+  }
+}
+
+async function openAikunApi() {
+  try {
+    await pywebview.api.open_url('https://aikun.cnzc.qzz.io');
+  } catch (e) {
+    showToast('打开链接失败: ' + e.message, 'error');
+  }
+}
+
+async function openRecharge() {
+  try {
+    await pywebview.api.open_url('https://www.goofish.com/item?id=1064631332790&spm=widle.12011849.copy.detail&ut_sk=1.aR2XEPC/65MDAMG2R2zND9Pp_21407387_1783739336074.copy.detail.1064631332790.3712867509');
+  } catch (e) {
+    showToast('打开链接失败: ' + e.message, 'error');
+  }
+}
+
+async function openModelMarket() {
+  try {
+    await pywebview.api.open_url('https://aikun.cnzc.qzz.io/pricing');
+  } catch (e) {
+    showToast('打开链接失败: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  汉化补丁
+// ============================================================
+
+function setSpan(id, text, color) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = text;
+    if (color) el.style.color = color;
+  }
+}
+
+async function loadPatchStatus() {
+  try {
+    const data = await pywebview.api.get_patch_status();
+    if (!data.ok) {
+      showToast('加载状态失败: ' + (data.msg || '未知错误'), 'error');
+      return;
+    }
+    
+    // 安装类型
+    const typeMap = {'native-bun': 'Windows 原生', 'npm': 'npm 安装', 'unknown': '未知'};
+    setSpan('patch-install-type', typeMap[data.install_type] || data.install_type);
+    
+    // Claude 版本
+    setSpan('patch-binary-version', data.binary_version || '未检测到');
+    
+    // 二进制补丁状态
+    if (data.binary_patched) {
+      setSpan('patch-binary-status', '已补丁 (v' + (data.patch_version || '') + ')', 'var(--green)');
+    } else if (data.patch_version) {
+      setSpan('patch-binary-status', '版本不匹配 (补丁v' + data.patch_version + ' / 当前v' + (data.binary_version || '?') + ')', 'var(--yellow)');
+    } else {
+      setSpan('patch-binary-status', '未补丁', 'var(--red)');
+    }
+    
+    // 汉化仓库
+    setSpan('patch-repo-status', data.installed ? '已安装' : '未安装', data.installed ? 'var(--green)' : 'var(--red)');
+    
+    // 插件状态
+    setSpan('patch-plugin-status', data.plugin_enabled ? '已启用' : '未启用', data.plugin_enabled ? 'var(--green)' : 'var(--yellow)');
+    
+    // 综合状态
+    const overall = document.getElementById('patch-overall-status');
+    if (overall) {
+      if (data.status_text.includes('已打补丁')) {
+        overall.textContent = '✅ ' + data.status_text;
+        overall.style.color = 'var(--green)';
+      } else if (data.status_text.includes('未打补丁') || data.status_text.includes('未安装')) {
+        overall.textContent = '❌ ' + data.status_text;
+        overall.style.color = 'var(--red)';
+      } else {
+        overall.textContent = '⚠️ ' + data.status_text;
+        overall.style.color = 'var(--yellow)';
+      }
+    }
+  } catch (e) {
+    showToast('加载补丁状态失败: ' + e.message, 'error');
+  }
+}
+
+async function installZhcnRepo() {
+  try {
+    const data = await pywebview.api.install_zhcn_repo();
+    showToast(data.msg, data.ok ? 'success' : 'error');
+    if (data.ok) loadPatchStatus();
+  } catch (e) {
+    showToast('安装失败: ' + e.message, 'error');
+  }
+}
+
+async function applyPatch() {
+  try {
+    const data = await pywebview.api.apply_patch();
+    if (data.need_close) {
+      if (confirm(data.msg + '\n\n是否自动关闭 Claude Code？')) {
+        await killClaude();
+        // 关闭后重新尝试
+        const retry = await pywebview.api.apply_patch();
+        showToast(retry.msg, retry.ok ? 'success' : 'error');
+        if (retry.ok) loadPatchStatus();
+      }
+    } else {
+      showToast(data.msg, data.ok ? 'success' : 'error');
+      if (data.ok) loadPatchStatus();
+    }
+  } catch (e) {
+    showToast('应用失败: ' + e.message, 'error');
+  }
+}
+
+async function removePatch() {
+  try {
+    const data = await pywebview.api.remove_patch();
+    if (data.need_close) {
+      if (confirm(data.msg + '\n\n是否自动关闭 Claude Code？')) {
+        await killClaude();
+        const retry = await pywebview.api.remove_patch();
+        showToast(retry.msg, retry.ok ? 'success' : 'error');
+        if (retry.ok) loadPatchStatus();
+      }
+    } else {
+      showToast(data.msg, data.ok ? 'success' : 'error');
+      if (data.ok) loadPatchStatus();
+    }
+  } catch (e) {
+    showToast('移除失败: ' + e.message, 'error');
+  }
+}
+
+async function killClaude() {
+  try {
+    const data = await pywebview.api.kill_claude();
+    showToast(data.msg, data.ok ? 'success' : 'error');
+  } catch (e) {
+    showToast('关闭失败: ' + e.message, 'error');
+  }
+}
+
+async function togglePlugin(enable) {
+  try {
+    const data = await pywebview.api.toggle_zhcn_plugin(enable);
+    showToast(data.msg, data.ok ? 'success' : 'error');
+    if (data.ok) loadPatchStatus();
+  } catch (e) {
+    showToast('操作失败: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  配置管理
+// ============================================================
+
+async function loadFullConfig() {
+  try {
+    const data = await pywebview.api.get_full_config();
+    if (data.ok) {
+      document.getElementById('full-config').value = JSON.stringify(data.config, null, 2);
+    }
+    
+    // 加载环境变量
+    const envData = await pywebview.api.get_env_vars();
+    if (envData.ok) {
+      const envDiv = document.getElementById('env-vars');
+      const envVars = envData.env_vars;
+      if (Object.keys(envVars).length > 0) {
+        envDiv.innerHTML = Object.entries(envVars).map(([key, value]) => 
+          `<div style="padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px;">
+            <span style="color: var(--accent-l);">${key}</span>: <span style="color: var(--text-dim);">${value}</span>
+          </div>`
+        ).join('');
+      } else {
+        envDiv.innerHTML = '<div style="color: var(--text-dim); font-size: 13px;">暂无环境变量配置</div>';
+      }
+    }
+    
+    // 加载权限规则
+    const permData = await pywebview.api.get_permissions();
+    if (permData.ok) {
+      const permDiv = document.getElementById('permissions');
+      const permissions = permData.permissions;
+      if (Object.keys(permissions).length > 0) {
+        permDiv.innerHTML = `<pre style="font-size: 12px; white-space: pre-wrap; word-break: break-all;">${JSON.stringify(permissions, null, 2)}</pre>`;
+      } else {
+        permDiv.innerHTML = '<div style="color: var(--text-dim); font-size: 13px;">暂无权限规则配置</div>';
+      }
+    }
+  } catch (e) {
+    showToast('加载配置失败: ' + e.message, 'error');
+  }
+}
+
+async function saveFullConfig() {
+  const configJson = document.getElementById('full-config').value;
+  
+  try {
+    const data = await pywebview.api.save_full_config(configJson);
+    if (data.ok) {
+      showToast('配置已保存', 'success');
+    } else {
+      showToast('保存失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  工具函数
+// ============================================================
+
+async function openClaude() {
+  try {
+    const data = await pywebview.api.open_claude(selectedFolder || null);
+    if (data.ok) {
+      showToast(data.msg, 'success');
+    } else {
+      showToast('启动失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('启动失败: ' + e.message, 'error');
+  }
+}
+
+function selectFolder(path) {
+  selectedFolder = path;
+  loadWorkFolders();
+  showToast(`已选择: ${path}`, 'success');
+}
+
+// ============================================================
+//  登录管理
+// ============================================================
+
+function showLoginModal() {
+  document.getElementById('login-modal').classList.add('show');
+}
+
+function hideLoginModal() {
+  document.getElementById('login-modal').classList.remove('show');
+}
+
+async function loginAikun() {
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  
+  if (!username || !password) {
+    showToast('请输入用户名和密码', 'error');
+    return;
+  }
+  
+  try {
+    const data = await pywebview.api.login_aikun(username, password);
+    if (data.ok) {
+      showToast(data.msg, 'success');
+      hideLoginModal();
+      checkLoginStatus();
+      queryBalance();
+    } else {
+      showToast('登录失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('登录失败: ' + e.message, 'error');
+  }
+}
+
+async function logoutAikun() {
+  try {
+    const data = await pywebview.api.logout_aikun();
+    if (data.ok) {
+      showToast(data.msg, 'success');
+      checkLoginStatus();
+    } else {
+      showToast('退出失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('退出失败: ' + e.message, 'error');
+  }
+}
+
+async function checkLoginStatus() {
+  try {
+    const data = await pywebview.api.get_login_status();
+    if (data.logged_in) {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('logged-section').style.display = 'block';
+      document.getElementById('username').textContent = data.username;
+      queryBalance();
+    } else {
+      document.getElementById('login-section').style.display = 'block';
+      document.getElementById('logged-section').style.display = 'none';
+    }
+  } catch (e) {
+    console.error('检查登录状态失败:', e);
+  }
+}
+
+async function queryBalance() {
+  try {
+    const data = await pywebview.api.query_balance();
+    if (data.ok) {
+      document.getElementById('balance-logged').textContent = `¥${data.balance.toFixed(2)}`;
+    } else {
+      if (data.need_login) {
+        document.getElementById('balance-logged').textContent = '未登录';
+      } else {
+        document.getElementById('balance-logged').textContent = '查询失败';
+      }
+    }
+  } catch (e) {
+    document.getElementById('balance-logged').textContent = '查询失败';
+  }
+}
+
+// ============================================================
+//  工作文件夹管理
+// ============================================================
+
+let selectedFolder = null;
+let currentGroupName = '默认';
+
+function showFolderModal(groupName) {
+  currentGroupName = groupName || '默认';
+  document.getElementById('folder-modal').classList.add('show');
+}
+
+function hideFolderModal() {
+  document.getElementById('folder-modal').classList.remove('show');
+  document.getElementById('folder-path').value = '';
+}
+
+function addWorkFolder(groupName) {
+  showFolderModal(groupName);
+}
+
+async function selectFolderDialog() {
+  try {
+    const data = await pywebview.api.select_folder_dialog();
+    if (data.ok) {
+      // 让用户输入自定义名称
+      const defaultName = data.folder.split(/[\\/]/).pop();
+      const customName = prompt('请输入工作文件夹名称：', defaultName);
+      
+      if (customName === null) return; // 用户取消
+      
+      const name = customName.trim() || defaultName;
+      
+      // 保存到默认分组
+      const saveData = await pywebview.api.save_work_folder(data.folder, name, '默认');
+      if (saveData.ok) {
+        showToast('已添加工作文件夹', 'success');
+        loadWorkFolders();
+      } else {
+        showToast('保存失败: ' + saveData.msg, 'error');
+      }
+    }
+  } catch (e) {
+    showToast('选择文件夹失败: ' + e.message, 'error');
+  }
+}
+
+async function selectFolderDialogForGroup(groupName) {
+  try {
+    const data = await pywebview.api.select_folder_dialog();
+    if (data.ok) {
+      // 让用户输入自定义名称
+      const defaultName = data.folder.split(/[\\/]/).pop();
+      const customName = prompt('请输入工作文件夹名称：', defaultName);
+      
+      if (customName === null) return; // 用户取消
+      
+      const name = customName.trim() || defaultName;
+      
+      // 保存到指定分组
+      const saveData = await pywebview.api.save_work_folder(data.folder, name, groupName);
+      if (saveData.ok) {
+        showToast('已添加工作文件夹', 'success');
+        loadWorkFolders();
+      } else {
+        showToast('保存失败: ' + saveData.msg, 'error');
+      }
+    }
+  } catch (e) {
+    showToast('选择文件夹失败: ' + e.message, 'error');
+  }
+}
+
+async function saveWorkFolder() {
+  const folder = document.getElementById('folder-path').value;
+  
+  if (!folder) {
+    showToast('请输入文件夹路径', 'error');
+    return;
+  }
+  
+  try {
+    const data = await pywebview.api.save_work_folder(folder, currentGroupName);
+    if (data.ok) {
+      showToast(data.msg, 'success');
+      hideFolderModal();
+      loadWorkFolders();
+    } else {
+      showToast('保存失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+async function deleteWorkFolder(folder, group) {
+  try {
+    const data = await pywebview.api.delete_work_folder(folder, group);
+    if (data.ok) {
+      showToast(data.msg, 'success');
+      loadWorkFolders();
+    } else {
+      showToast('删除失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('删除失败: ' + e.message, 'error');
+  }
+}
+
+async function loadWorkFolders() {
+  try {
+    const data = await pywebview.api.get_work_folders();
+    if (data.ok) {
+      const container = document.getElementById('work-folders-container');
+      container.innerHTML = '';
+      
+      const folders = data.folders;
+      const groups = Object.keys(folders);
+      const lastSelected = data.last_selected || '';
+      
+      // 如果有上次选择的文件夹，自动选中
+      if (lastSelected && !selectedFolder) {
+        selectedFolder = lastSelected;
+        const display = document.getElementById('selected-folder-display');
+        if (display) {
+          const folderName = lastSelected.split(/[\\/]/).pop();
+          display.textContent = `当前: ${folderName}`;
+          display.title = lastSelected;
+        }
+      }
+      
+      if (groups.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-dim); font-size: 13px; padding: 16px; text-align: center;">暂无工作文件夹，点击「浏览文件夹」或「新建分组」添加</div>';
+        return;
+      }
+      
+      groups.forEach(group => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'folder-group';
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'folder-group-header';
+        headerDiv.onclick = () => toggleGroup(groupDiv);
+        
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'folder-group-title';
+        titleDiv.innerHTML = `<span class="folder-group-arrow">▶</span> 📂 ${group} (${folders[group].length})`;
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.display = 'flex';
+        actionsDiv.style.gap = '8px';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'folder-item-btn';
+        editBtn.textContent = '✏️';
+        editBtn.title = '编辑分组名称';
+        editBtn.onclick = (e) => {
+          e.stopPropagation();
+          renameGroup(group);
+        };
+        
+        const deleteGroupBtn = document.createElement('button');
+        deleteGroupBtn.className = 'folder-item-btn';
+        deleteGroupBtn.textContent = '🗑️';
+        deleteGroupBtn.title = '删除分组';
+        deleteGroupBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteGroup(group);
+        };
+        
+        const addBtn = document.createElement('button');
+        addBtn.className = 'folder-item-btn';
+        addBtn.textContent = '➕';
+        addBtn.title = '添加文件夹';
+        addBtn.onclick = (e) => {
+          e.stopPropagation();
+          selectFolderDialogForGroup(group);
+        };
+        
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteGroupBtn);
+        actionsDiv.appendChild(addBtn);
+        headerDiv.appendChild(titleDiv);
+        headerDiv.appendChild(actionsDiv);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'folder-group-content';
+        
+        let groupIndex = 1;
+        
+        folders[group].forEach(item => {
+          const path = typeof item === 'string' ? item : item.path;
+          const name = typeof item === 'string' ? item.split(/[\\/]/).pop() : item.name;
+          
+          const folderDiv = document.createElement('div');
+          folderDiv.className = 'folder-item' + (selectedFolder === path ? ' selected' : '');
+          folderDiv.onclick = () => selectFolder(path);
+          
+          const indexSpan = document.createElement('span');
+          indexSpan.style.cssText = 'color: var(--text-dim); font-size: 12px; margin-right: 8px; min-width: 20px;';
+          indexSpan.textContent = `${groupIndex}.`;
+          
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'folder-item-name';
+          nameSpan.style.cssText = 'font-weight: 500; margin-right: 8px;';
+          nameSpan.textContent = name;
+          
+          const pathSpan = document.createElement('span');
+          pathSpan.className = 'folder-item-path';
+          pathSpan.style.cssText = 'font-size: 12px; color: var(--text-dim);';
+          pathSpan.textContent = path;
+          pathSpan.title = path;
+          
+          const actionsSpan = document.createElement('span');
+          actionsSpan.className = 'folder-item-actions';
+          
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'folder-item-btn';
+          deleteBtn.textContent = '🗑️';
+          deleteBtn.title = '删除';
+          deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteWorkFolder(path, group);
+          };
+          
+          const editFolderBtn = document.createElement('button');
+          editFolderBtn.className = 'folder-item-btn';
+          editFolderBtn.textContent = '✏️';
+          editFolderBtn.title = '编辑名称';
+          editFolderBtn.onclick = (e) => {
+            e.stopPropagation();
+            renameFolder(path, name, group);
+          };
+          
+          actionsSpan.appendChild(editFolderBtn);
+          actionsSpan.appendChild(deleteBtn);
+          folderDiv.appendChild(indexSpan);
+          folderDiv.appendChild(nameSpan);
+          folderDiv.appendChild(pathSpan);
+          folderDiv.appendChild(actionsSpan);
+          contentDiv.appendChild(folderDiv);
+          
+          groupIndex++;
+        });
+        
+        groupDiv.appendChild(headerDiv);
+        groupDiv.appendChild(contentDiv);
+        container.appendChild(groupDiv);
+      });
+    }
+  } catch (e) {
+    console.error('加载工作文件夹失败:', e);
+  }
+}
+
+function toggleGroup(groupDiv) {
+  const content = groupDiv.querySelector('.folder-group-content');
+  const arrow = groupDiv.querySelector('.folder-group-arrow');
+  
+  content.classList.toggle('expanded');
+  arrow.classList.toggle('expanded');
+}
+
+async function selectFolder(folder) {
+  selectedFolder = folder;
+  loadWorkFolders();
+  // 更新显示的文件夹名称
+  const display = document.getElementById('selected-folder-display');
+  if (display) {
+    const folderName = folder.split(/[\\/]/).pop();
+    display.textContent = `当前: ${folderName}`;
+    display.title = folder;
+  }
+  // 保存最后选择的文件夹
+  try {
+    await pywebview.api.save_last_selected_folder(folder);
+  } catch (e) {
+    console.error('保存最后选择的文件夹失败:', e);
+  }
+  showToast(`已选择: ${folder}`, 'success');
+}
+
+async function addGroup() {
+  const groupName = prompt('请输入分组名称：');
+  if (groupName && groupName.trim()) {
+    // 创建空分组
+    try {
+      const data = await pywebview.api.create_group(groupName.trim());
+      if (data.ok) {
+        showToast('分组已创建', 'success');
+        loadWorkFolders();
+      } else {
+        showToast('创建分组失败: ' + data.msg, 'error');
+      }
+    } catch (e) {
+      showToast('创建分组失败: ' + e.message, 'error');
+    }
+  }
+}
+
+async function deleteGroup(groupName) {
+  if (confirm(`确定要删除分组「${groupName}」吗？分组内的所有文件夹也会被删除。`)) {
+    try {
+      const data = await pywebview.api.delete_group(groupName);
+      if (data.ok) {
+        showToast('分组已删除', 'success');
+        loadWorkFolders();
+      } else {
+        showToast('删除分组失败: ' + data.msg, 'error');
+      }
+    } catch (e) {
+      showToast('删除分组失败: ' + e.message, 'error');
+    }
+  }
+}
+
+async function renameGroup(oldName) {
+  const newName = prompt('请输入新的分组名称：', oldName);
+  if (newName && newName !== oldName) {
+    try {
+      const data = await pywebview.api.rename_work_folder_group(oldName, newName);
+      if (data.ok) {
+        showToast('分组名称已更新', 'success');
+        loadWorkFolders();
+      } else {
+        showToast('重命名失败: ' + data.msg, 'error');
+      }
+    } catch (e) {
+      showToast('重命名失败: ' + e.message, 'error');
+    }
+  }
+}
+
+async function renameFolder(folderPath, currentName, group) {
+  const newName = prompt('请输入新的文件夹名称：', currentName);
+  if (newName && newName !== currentName) {
+    try {
+      const data = await pywebview.api.rename_work_folder(folderPath, newName, group);
+      if (data.ok) {
+        showToast('文件夹名称已更新', 'success');
+        loadWorkFolders();
+      } else {
+        showToast('重命名失败: ' + data.msg, 'error');
+      }
+    } catch (e) {
+      showToast('重命名失败: ' + e.message, 'error');
+    }
+  }
+}
+
+async function openConfigFolder() {
+  try {
+    const data = await pywebview.api.open_config_folder();
+    if (data.ok) {
+      showToast(data.msg, 'success');
+    } else {
+      showToast('打开失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('打开失败: ' + e.message, 'error');
+  }
+}
+
+async function scanClaude() {
+  try {
+    const data = await pywebview.api.scan_claude();
+    if (data.ok) {
+      if (data.count > 0) {
+        showToast(`找到 ${data.count} 个 Claude 安装`, 'success');
+      } else {
+        showToast('未找到 Claude 安装', 'warning');
+      }
+    } else {
+      showToast('扫描失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('扫描失败: ' + e.message, 'error');
+  }
+}
+
+async function openUrl(url) {
+  try {
+    await pywebview.api.open_url(url);
+  } catch (e) {
+    showToast('打开链接失败: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+//  消息提示
+// ============================================================
+
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast toast-' + type;
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// ============================================================
+//  初始化
+// ============================================================
+
+window.addEventListener('pywebviewready', () => {
+  refreshDashboard();
+  loadWorkFolders();
+  checkLoginStatus();
+});
+</script>
+
+<!-- 登录模态框 -->
+<div id="login-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">登录 AI坤 API</div>
+    <div class="form-group">
+      <label class="form-label">用户名</label>
+      <input type="text" class="form-input" id="login-username" placeholder="请输入用户名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">密码</label>
+      <input type="password" class="form-input" id="login-password" placeholder="请输入密码">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideLoginModal()">取消</button>
+      <button class="btn btn-primary" onclick="loginAikun()">登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 添加工作文件夹模态框 -->
+<div id="folder-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">添加工作文件夹</div>
+    <div class="form-group">
+      <label class="form-label">文件夹路径</label>
+      <input type="text" class="form-input" id="folder-path" placeholder="请输入文件夹路径，如 C:\\Users\\Desktop\\project">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideFolderModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveWorkFolder()">保存</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
