@@ -1,133 +1,166 @@
-# Claude Code 管理工具
+# aikun-claude-manager
 
-一个专为 Claude Code 设计的管理工具，基于 aikun-gui 架构开发，提供直观的图形界面来管理 Claude Code 的配置、API 连接和汉化补丁。
+Claude Code 图形化管理工具，提供 API 配置、汉化补丁、工作目录管理等功能。
 
-## ✨ 功能特性
+![Logo](logo.png)
 
-### 📊 仪表盘
-- Claude Code 安装状态检测
-- API 连接状态监控
-- 当前模型配置显示
-- 汉化补丁状态查看
-- 快速操作按钮
-- **余额查询功能**（需要登录）
-- AI坤 API 官网跳转
-- **常用工作文件夹设置**
-- **系统信息显示**（平台、配置文件）
+## ✨ 功能
 
-### 🔗 API 配置
-- API Key 管理（Base URL 已固定为 aikun.cnzc.qzz.io）
-- 模型下拉选择器（支持分类：Sonnet/Opus/Haiku/Fable）
-- 默认模型设置（必选）
-- 其他系列模型设置（非必选）
+### 仪表盘
+- Claude Code 安装状态、版本检测
+- API 连接状态、当前模型显示
+- 余额查询（需登录 aikun 账号）
+- 思考程度快速切换（low / medium / high）
+- 汉化补丁状态一览
+- 一键启动 Claude（自动选工作目录）
+
+### API 配置
+- API Key 设置（Base URL 固定为 `aikun.cnzc.qzz.io`）
+- 模型选择：支持按系列分类（Sonnet / Opus / Haiku / Fable），也可自定义输入
+- 获取可用模型列表，点击即填
 - API 连接测试
-- 模型列表获取
+- 思考程度设置（low / medium / high）
 
-### 🌐 汉化补丁
-- 一键安装汉化仓库
-- 补丁应用/移除
-- 补丁状态检测
+### 汉化补丁
+- 详细状态面板：安装类型、Claude 版本、二进制补丁状态、插件状态
+- 一键安装汉化仓库、应用补丁、移除补丁
+- 自动检测 Claude 进程，打补丁前提示关闭
+- 插件启用/禁用管理
 
-### ⚙️ 配置管理
-- 完整配置文件编辑
-- 环境变量管理
-- 权限规则配置
+### 工作目录管理
+- 分组管理工作文件夹
+- 启动 Claude 时自动切换到指定目录
+- 记住上次选择的目录
+
+### 配置管理
+- settings.json 完整编辑
 - JSON 格式化显示
 
-### 🛠️ 实用工具
-- 快速启动 Claude Code
-- 打开配置文件夹
-- Claude 安装扫描
-- 官方文档链接
+## 📦 下载
 
-## 🚀 快速开始
+### GitHub Actions 云端打包（推荐）
 
-### 方法一：直接运行（推荐）
-1. 下载 `ClaudeCodeManager.exe`
-2. 双击运行即可
+前往 [Releases](https://github.com/hayou2002/aikun-claude-manager/releases) 页面下载对应平台的安装包：
 
-### 方法二：从源码运行
-1. 克隆项目
+| 平台 | 文件 |
+|------|------|
+| Windows | `aikun-claude-manager-windows.zip` |
+| macOS | `aikun-claude-manager-macos.tar.gz` |
+| Linux | `aikun-claude-manager-linux.tar.gz` |
+
+解压后直接运行即可。
+
+### 本地打包
+
 ```bash
-git clone <repository-url>
-cd claude-manager
+# Windows
+build.bat
+
+# 或手动打包
+pip install -r requirements.txt pyinstaller
+pyinstaller --onefile --noconsole --name "aikun-claude-manager" --add-data="ui;ui" --add-data="logo.png;." --icon=logo.ico main.py
 ```
 
-2. 安装依赖
+### 从源码运行
+
 ```bash
+git clone https://github.com/hayou2002/aikun-claude-manager.git
+cd aikun-claude-manager
 pip install -r requirements.txt
-```
-
-3. 运行程序
-```bash
 python main.py
 ```
 
-## 🔧 打包为可执行文件
+## 🚀 使用步骤
 
-运行打包脚本：
+### 1. 首次启动
+
+双击运行程序，仪表盘会自动检测 Claude Code 安装状态。
+
+### 2. 配置 API
+
+1. 进入「API 配置」页面
+2. 输入 API Key（从 [aikun.cnzc.qzz.io](https://aikun.cnzc.qzz.io) 获取）
+3. 点击「测试连接」确认正常
+4. 选择默认模型（必选）
+5. 可选：设置其他系列模型和思考程度
+6. 点击「保存配置」
+
+### 3. 应用汉化补丁
+
+1. 进入「汉化补丁」页面
+2. 如果显示「仓库未安装」，点击「安装仓库」
+3. **关闭所有 Claude Code 窗口**（重要！）
+4. 点击「应用补丁」
+5. 等待完成，状态显示「已打补丁」即可
+
+### 4. 管理工作目录
+
+1. 进入「工作目录」页面
+2. 添加常用文件夹，可分组管理
+3. 回到仪表盘，选择目录后点击「启动 Claude」
+
+### 5. 查询余额
+
+1. 点击仪表盘的「登录 aikun」按钮
+2. 输入 API Key 登录
+3. 余额会显示在仪表盘
+
+## ⚠️ 注意事项
+
+### 汉化补丁相关
+
+- **Windows 原生安装**：打补丁/移除补丁前必须先关闭 Claude Code，因为 Windows 会锁定正在运行的 exe 文件
+- 如果补丁状态显示「版本不匹配」，说明 Claude Code 更新了，需要重新打补丁
+- 汉化补丁只翻译部分界面文案，不是完全汉化
+
+### API 配置相关
+
+- Base URL 固定为 `https://aikun.cnzc.qzz.io`，不需要手动填写
+- Claude Code 会自动在 URL 后追加 `/v1/messages`，所以配置时**不要**加 `/v1`
+- 思考程度通过环境变量 `CLAUDE_CODE_EFFORT_LEVEL` 设置，比 settings.json 字段更可靠
+
+### 其他
+
+- 配置文件位置：`~/.claude/settings.json`
+- 汉化插件位置：`~/.claude/plugins/claude-code-zh-cn/`
+- 余额查询需要先登录 aikun 账号
+
+## 🛠️ 开发
+
+### 项目结构
+
+```
+aikun-claude-manager/
+├── main.py                  # 主程序（Python 后端）
+├── ui/
+│   └── index.html           # 界面（HTML/CSS/JS）
+├── logo.png                 # 应用图标（1024x1024）
+├── logo.ico                 # Windows 图标
+├── logo_b64.txt             # 图标 base64 编码
+├── requirements.txt         # Python 依赖
+├── build.bat                # Windows 本地打包脚本
+├── .github/
+│   └── workflows/
+│       └── build.yml        # GitHub Actions 自动打包
+└── README.md
+```
+
+### 技术栈
+
+- **后端**：Python 3.11+ / pywebview
+- **前端**：HTML + CSS + JavaScript（内嵌在 pywebview 中）
+- **打包**：PyInstaller
+
+### GitHub Actions
+
+推送 tag 会自动触发云端打包：
+
 ```bash
-build.bat
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-打包完成后，可执行文件将生成在 `dist/ClaudeCodeManager.exe`
-
-## 📁 项目结构
-
-```
-claude-manager/
-├── main.py              # 主程序
-├── requirements.txt     # Python 依赖
-├── build.bat            # 打包脚本
-├── logo.png             # 应用图标
-├── README.md            # 项目说明
-└── ui/
-    └── index.html       # 界面文件
-```
-
-## 🎯 使用场景
-
-- **Claude Code 用户**：管理 API 配置、汉化界面
-- **开发者**：快速切换不同的 API 端点和模型
-- **团队**：统一 Claude Code 配置
-
-## 🔒 安全说明
-
-- API Key 仅在本地存储，不会上传到任何服务器
-- 配置文件存储在用户目录下的 `.claude` 文件夹
-- 所有网络请求仅用于 API 连接测试
-
-## 📝 更新日志
-
-### v1.2.0
-- 修复窗口图标，使用自定义 Logo 替换 Python 默认图标
-- 实现余额查询登录功能（参考 aikun-gui）
-- 添加常用工作文件夹设置，支持从指定目录启动 Claude
-- 修复系统信息显示平台未知的问题
-- 修复 API 配置输入框样式，解决黑字黑底问题
-- 修复配置管理页面样式问题
-- 添加登录/退出登录功能
-- 添加工作文件夹管理功能
-
-### v1.1.0
-- 修复 Logo 显示问题，使用 base64 编码确保正确加载
-- 简化 API 配置界面，只显示 API Key 输入框
-- 实现模型下拉选择器，支持按系列分类（Sonnet/Opus/Haiku/Fable）
-- 添加默认模型必选功能
-- 添加余额查询功能
-- 添加 AI坤 API 官网跳转功能
-- 优化仪表盘布局，增加账户信息卡片
-
-### v1.0.0
-- 初始版本发布
-- 支持 Claude Code 安装检测
-- 支持 API 配置管理
-- 支持汉化补丁管理
-- 基于 aikun-gui 架构开发
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
+打包完成后会在 Releases 页面生成三平台安装包。
 
 ## 📄 许可证
 
