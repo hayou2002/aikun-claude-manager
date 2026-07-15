@@ -337,20 +337,29 @@ class ApiBridge:
             
             # 自动检测
             if PLATFORM == "Windows":
-                # 方法1: where claude
-                out, _, rc = run_cmd("where claude")
-                if rc == 0 and out:
-                    for line in out.strip().split("\n"):
-                        line = line.strip()
-                        if line and Path(line).exists():
-                            return line
-                
-                # 方法2: npm 全局路径
+                # 方法1: npm 全局路径（最可靠）
                 appdata = os.environ.get("APPDATA", "")
                 if appdata:
                     npm_path = Path(appdata) / "npm" / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"
                     if npm_path.exists():
                         return str(npm_path)
+                
+                # 方法2: where claude（可能返回脚本路径）
+                out, _, rc = run_cmd("where claude")
+                if rc == 0 and out:
+                    for line in out.strip().split("\n"):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        # 跳过 .ps1/.cmd 脚本，直接找 .exe
+                        if line.endswith('.exe') and Path(line).exists():
+                            return line
+                        # 如果是脚本，尝试找对应的 exe
+                        if line.endswith('.ps1') or line.endswith('.cmd'):
+                            # npm 安装的脚本，对应的 exe 在 node_modules 里
+                            npm_dir = Path(line).parent / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"
+                            if npm_dir.exists():
+                                return str(npm_dir)
             else:
                 # macOS/Linux
                 out, _, rc = run_cmd("which claude")
