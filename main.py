@@ -235,7 +235,11 @@ class ApiBridge:
             "status_text": "未知",
         }
         try:
-            if not ZHCN_REPO_DIR.exists():
+            # 检查汉化仓库（两个可能的位置）
+            repo_dir = CONFIG_DIR / "claude-code-zh-cn-repo"
+            if not repo_dir.exists():
+                repo_dir = ZHCN_REPO_DIR
+            if not repo_dir.exists():
                 result["status_text"] = "仓库未安装"
                 return result
             
@@ -260,7 +264,7 @@ class ApiBridge:
             claude_bin = self._find_claude_binary()
             if claude_bin:
                 # 检测安装类型
-                helper = ZHCN_REPO_DIR / "bun-binary-io.js"
+                helper = repo_dir / "bun-binary-io.js"
                 if helper.exists():
                     out, _, rc = run_cmd(f'node "{helper}" detect "{claude_bin}"', timeout=10)
                     if rc == 0 and out.strip():
@@ -277,7 +281,7 @@ class ApiBridge:
                     result["binary_version"] = ver_match[0] if ver_match else ""
             
             # 检查 .patched-version 标记
-            marker_file = ZHCN_REPO_DIR / ".patched-version"
+            marker_file = repo_dir / ".patched-version"
             if marker_file.exists():
                 marker = marker_file.read_text(encoding="utf-8").strip()
                 if marker.startswith("native|"):
@@ -730,7 +734,9 @@ class ApiBridge:
         try:
             info = self._get_patch_status()
             info["ok"] = True
-            info["installed"] = ZHCN_REPO_DIR.exists()
+            # 检查汉化仓库是否存在（两个可能的位置）
+            repo_dir = CONFIG_DIR / "claude-code-zh-cn-repo"
+            info["installed"] = repo_dir.exists() or ZHCN_REPO_DIR.exists()
             return info
         except Exception as e:
             return {"ok": False, "msg": str(e)}
@@ -738,17 +744,28 @@ class ApiBridge:
     def install_zhcn_repo(self):
         """安装汉化仓库"""
         try:
-            if ZHCN_REPO_DIR.exists():
+            # 汉化仓库的实际位置
+            repo_dir = CONFIG_DIR / "claude-code-zh-cn-repo"
+            
+            # 检查是否已安装（检查两个可能的位置）
+            if repo_dir.exists():
+                return {"ok": True, "msg": "汉化仓库已存在"}
+            if ZHCN_REPO_DIR.exists() and (ZHCN_REPO_DIR / "install.ps1").exists():
                 return {"ok": True, "msg": "汉化仓库已存在"}
             
-            PLUGINS_DIR.mkdir(parents=True, exist_ok=True)
+            # 创建目录并克隆
+            repo_dir.mkdir(parents=True, exist_ok=True)
             
-            cmd = f'git clone https://github.com/anthropic-ai/claude-code-zh-cn.git "{ZHCN_REPO_DIR}"'
-            out, err, rc = run_cmd(cmd, timeout=60)
+            cmd = f'git clone https://github.com/taekchef/claude-code-zh-cn.git "{repo_dir}"'
+            out, err, rc = run_cmd(cmd, timeout=120)
             
             if rc == 0:
                 return {"ok": True, "msg": "汉化仓库安装成功"}
             else:
+                # 清理失败的目录
+                import shutil
+                if repo_dir.exists():
+                    shutil.rmtree(repo_dir, ignore_errors=True)
                 return {"ok": False, "msg": f"安装失败: {err}"}
         except Exception as e:
             return {"ok": False, "msg": f"安装失败: {str(e)}"}
@@ -756,8 +773,20 @@ class ApiBridge:
     def apply_patch(self):
         """应用汉化补丁（完整流程）"""
         try:
-            if not ZHCN_REPO_DIR.exists():
-                return {"ok": False, "msg": "汉化仓库未安装，请先安装"}
+            # 查找安装脚本 - 优先在插件目录找，然后在仓库目录找
+            repo_dir = CONFIG_DIR / "claude-code-zh-cn-repo"
+            plugin_dir = PLUGINS_DIR / "claude-code-zh-cn"
+            
+            # 确定安装脚本路径
+            install_ps = None
+            if repo_dir.exists() and (repo_dir / "install.ps1").exists():
+                install_ps = repo_dir / "install.ps1"
+            elif plugin_dir.exists() and (plugin_dir / "install.ps1").exists():
+                install_ps = plugin_dir / "install.ps1"
+                repo_dir = plugin_dir
+            
+            if not install_ps:
+                return {"ok": False, "msg": "未找到汉化仓库，请先安装"}
             
             # 步骤1: 检查 Claude 进程
             if self._is_claude_running():
@@ -767,17 +796,26 @@ class ApiBridge:
             cfg_result = self._apply_settings_patch()
             
             # 步骤3: 运行安装脚本打二进制补丁
-            install_ps = ZHCN_REPO_DIR / "install.ps1"
-            if PLATFORM == "Windows" and install_ps.exists():
+            if PLATFORM == "Windows":
                 cmd = f'powershell -NoProfile -ExecutionPolicy Bypass -File "{install_ps}" -SkipBanner'
-                out, err, rc = run_cmd(cmd, cwd=str(ZHCN_REPO_DIR), timeout=120)
+                out, err, rc = run_cmd(cmd, cwd=str(repo_dir), timeout=120)
                 
                 if rc == 0:
                     return {"ok": True, "msg": f"补丁已应用！{cfg_result}"}
                 else:
                     return {"ok": False, "msg": f"安装脚本执行失败: {err or out}"}
             else:
-                return {"ok": False, "msg": "未找到安装脚本，请手动安装"}
+                # macOS/Linux
+                install_sh = repo_dir / "install.sh"
+                if install_sh.exists():
+                    cmd = f'bash "{install_sh}"'
+                    out, err, rc = run_cmd(cmd, cwd=str(repo_dir), timeout=120)
+                    if rc == 0:
+                        return {"ok": True, "msg": f"补丁已应用！{cfg_result}"}
+                    else:
+                        return {"ok": False, "msg": f"安装脚本执行失败: {err or out}"}
+                else:
+                    return {"ok": False, "msg": "未找到安装脚本"}
         except Exception as e:
             return {"ok": False, "msg": f"补丁失败: {str(e)}"}
     
