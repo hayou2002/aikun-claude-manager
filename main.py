@@ -235,11 +235,16 @@ class ApiBridge:
             "status_text": "未知",
         }
         try:
-            # 检查汉化仓库（两个可能的位置）
+            # 检查汉化仓库（多个可能的位置）
             repo_dir = CONFIG_DIR / "claude-code-zh-cn-repo"
-            if not repo_dir.exists():
-                repo_dir = ZHCN_REPO_DIR
-            if not repo_dir.exists():
+            plugin_dir = ZHCN_REPO_DIR  # ~/.claude/plugins/claude-code-zh-cn
+            
+            # 确定使用的目录
+            if repo_dir.exists():
+                active_dir = repo_dir
+            elif plugin_dir.exists():
+                active_dir = plugin_dir
+            else:
                 result["status_text"] = "仓库未安装"
                 return result
             
@@ -264,7 +269,7 @@ class ApiBridge:
             claude_bin = self._find_claude_binary()
             if claude_bin:
                 # 检测安装类型
-                helper = repo_dir / "bun-binary-io.js"
+                helper = active_dir / "bun-binary-io.js"
                 if helper.exists():
                     out, _, rc = run_cmd(f'node "{helper}" detect "{claude_bin}"', timeout=10)
                     if rc == 0 and out.strip():
@@ -280,8 +285,10 @@ class ApiBridge:
                     ver_match = out.strip().split()
                     result["binary_version"] = ver_match[0] if ver_match else ""
             
-            # 检查 .patched-version 标记
-            marker_file = repo_dir / ".patched-version"
+            # 检查 .patched-version 标记（两个位置都检查）
+            marker_file = active_dir / ".patched-version"
+            if not marker_file.exists():
+                marker_file = plugin_dir / ".patched-version"
             if marker_file.exists():
                 marker = marker_file.read_text(encoding="utf-8").strip()
                 if marker.startswith("native|"):
