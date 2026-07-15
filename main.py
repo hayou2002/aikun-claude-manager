@@ -312,11 +312,40 @@ class ApiBridge:
     def _find_claude_binary(self):
         """查找 Claude Code 二进制文件路径"""
         try:
+            cfg = load_config()
+            
+            # 优先使用用户手动设置的路径
+            custom_path = cfg.get("claude_install_path", "")
+            if custom_path and Path(custom_path).exists():
+                if Path(custom_path).is_file():
+                    return custom_path
+                # 如果是目录，查找 claude.exe
+                exe_path = Path(custom_path) / "bin" / "claude.exe"
+                if exe_path.exists():
+                    return str(exe_path)
+            
+            # 自动检测
             if PLATFORM == "Windows":
-                # npm 安装路径
-                npm_path = Path(os.environ.get("APPDATA", "")) / "npm" / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"
-                if npm_path.exists():
-                    return str(npm_path)
+                # 方法1: where claude
+                out, _, rc = run_cmd("where claude")
+                if rc == 0 and out:
+                    for line in out.strip().split("\n"):
+                        line = line.strip()
+                        if line and Path(line).exists():
+                            return line
+                
+                # 方法2: npm 全局路径
+                appdata = os.environ.get("APPDATA", "")
+                if appdata:
+                    npm_path = Path(appdata) / "npm" / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"
+                    if npm_path.exists():
+                        return str(npm_path)
+            else:
+                # macOS/Linux
+                out, _, rc = run_cmd("which claude")
+                if rc == 0 and out:
+                    return out.strip()
+            
             return None
         except:
             return None
@@ -846,6 +875,37 @@ class ApiBridge:
             return {"ok": True, "msg": "Claude 已关闭"}
         except Exception as e:
             return {"ok": False, "msg": f"关闭失败: {str(e)}"}
+    
+    def save_claude_path(self, path):
+        """保存 Claude Code 安装路径"""
+        try:
+            if not path:
+                return {"ok": False, "msg": "路径不能为空"}
+            
+            path = path.strip().strip('"').strip("'")
+            if not Path(path).exists():
+                return {"ok": False, "msg": f"路径不存在: {path}"}
+            
+            cfg = load_config()
+            cfg["claude_install_path"] = path
+            save_config(cfg)
+            return {"ok": True, "msg": "路径已保存"}
+        except Exception as e:
+            return {"ok": False, "msg": f"保存失败: {str(e)}"}
+    
+    def get_claude_path(self):
+        """获取当前 Claude 安装路径"""
+        try:
+            cfg = load_config()
+            custom_path = cfg.get("claude_install_path", "")
+            detected_path = self._find_claude_binary()
+            return {
+                "ok": True,
+                "custom_path": custom_path,
+                "detected_path": detected_path or "",
+            }
+        except Exception as e:
+            return {"ok": False, "msg": str(e)}
     
     def toggle_zhcn_plugin(self, enable):
         """启用/禁用汉化插件"""

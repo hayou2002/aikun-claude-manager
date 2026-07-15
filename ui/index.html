@@ -727,6 +727,8 @@ body {
         <div class="card-label">Claude 状态</div>
         <div class="card-value" id="claude-status">检测中...</div>
         <div class="card-sub" id="claude-version">正在扫描安装</div>
+        <div id="claude-path-area" style="margin-top: 8px; font-size: 11px; color: var(--text-dim); word-break: break-all;"></div>
+        <button class="btn btn-sm" onclick="selectClaudePath()" style="margin-top: 8px; width: 100%; padding: 4px;">📁 手动设置路径</button>
       </div>
       
       <div class="card">
@@ -1142,13 +1144,17 @@ function updateDashboardUI(data) {
   // Claude 状态
   const claudeStatus = document.getElementById('claude-status');
   const claudeVersion = document.getElementById('claude-version');
+  const claudePathArea = document.getElementById('claude-path-area');
   
   if (data.claude_installed) {
     claudeStatus.innerHTML = '<span class="status status-ok"><span class="status-dot"></span>已安装</span>';
     claudeVersion.textContent = data.claude_version || '版本未知';
+    if (claudePathArea && data.claude_path) {
+      claudePathArea.textContent = data.claude_path;
+    }
   } else {
     claudeStatus.innerHTML = '<span class="status status-error"><span class="status-dot"></span>未安装</span>';
-    claudeVersion.textContent = '请安装 Claude Code';
+    claudeVersion.textContent = '请点击下方按钮设置路径';
   }
   
   // API 状态
@@ -2151,6 +2157,33 @@ async function renameFolder(folderPath, currentName, group) {
     } catch (e) {
       showToast('重命名失败: ' + e.message, 'error');
     }
+  }
+}
+
+async function selectClaudePath() {
+  try {
+    // 先获取当前路径
+    const pathData = await pywebview.api.get_claude_path();
+    let currentPath = pathData.custom_path || pathData.detected_path || '';
+    
+    // 弹窗让用户输入路径
+    const newPath = prompt('请输入 Claude Code 安装路径:\n\nWindows 示例: C:\\Users\\用户名\\AppData\\Roaming\\npm\\node_modules\\@anthropic-ai\\claude-code\n\n留空则自动检测', currentPath);
+    
+    if (newPath === null) return; // 用户取消
+    
+    if (newPath.trim() === '') {
+      // 清除自定义路径，使用自动检测
+      await pywebview.api.save_claude_path('');
+      showToast('已恢复自动检测', 'success');
+    } else {
+      const data = await pywebview.api.save_claude_path(newPath.trim());
+      showToast(data.msg, data.ok ? 'success' : 'error');
+    }
+    
+    // 刷新状态
+    refreshDashboard();
+  } catch (e) {
+    showToast('设置失败: ' + e.message, 'error');
   }
 }
 
