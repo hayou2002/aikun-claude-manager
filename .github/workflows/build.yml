@@ -16,13 +16,12 @@ jobs:
         include:
           - os: windows-latest
             artifact: aikun-claude-manager-windows
-            ext: .exe
+          - os: macos-13
+            artifact: aikun-claude-manager-macos-intel
           - os: macos-latest
-            artifact: aikun-claude-manager-macos
-            ext: ''
+            artifact: aikun-claude-manager-macos-arm64
           - os: ubuntu-latest
             artifact: aikun-claude-manager-linux
-            ext: ''
 
     runs-on: ${{ matrix.os }}
 
@@ -50,6 +49,11 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           pyinstaller --onefile --noconsole --name "aikun-claude-manager" --add-data="ui:ui" --add-data="logo.png:." main.py
+
+      - name: Remove quarantine (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          xattr -cr dist/aikun-claude-manager
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
