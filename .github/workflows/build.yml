@@ -16,10 +16,8 @@ jobs:
         include:
           - os: windows-latest
             artifact: aikun-claude-manager-windows
-          - os: macos-13
-            artifact: aikun-claude-manager-macos-intel
           - os: macos-latest
-            artifact: aikun-claude-manager-macos-arm64
+            artifact: aikun-claude-manager-macos
           - os: ubuntu-latest
             artifact: aikun-claude-manager-linux
 
