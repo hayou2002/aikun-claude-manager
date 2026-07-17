@@ -591,30 +591,29 @@ class ApiBridge:
             # 确保env对象存在
             if "env" not in cfg:
                 cfg["env"] = {}
+            env = cfg["env"]
             
-            # 保存默认模型到env
-            if config.get("model"):
-                cfg["env"]["ANTHROPIC_MODEL"] = config["model"]
+            # 模型 key 映射
+            model_map = {
+                "model": "ANTHROPIC_MODEL",
+                "sonnet_model": "ANTHROPIC_DEFAULT_SONNET_MODEL",
+                "opus_model": "ANTHROPIC_DEFAULT_OPUS_MODEL",
+                "haiku_model": "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+                "fable_model": "ANTHROPIC_DEFAULT_FABLE_MODEL",
+            }
             
-            # 保存各个模型配置到env
-            if config.get("sonnet_model"):
-                cfg["env"]["ANTHROPIC_DEFAULT_SONNET_MODEL"] = config["sonnet_model"]
-            
-            if config.get("opus_model"):
-                cfg["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"] = config["opus_model"]
-            
-            if config.get("haiku_model"):
-                cfg["env"]["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = config["haiku_model"]
-            
-            if config.get("fable_model"):
-                cfg["env"]["ANTHROPIC_DEFAULT_FABLE_MODEL"] = config["fable_model"]
+            for cfg_key, env_key in model_map.items():
+                value = config.get(cfg_key, "")
+                if value:
+                    env[env_key] = value
+                else:
+                    # 清空时移除该 key，避免写死
+                    env.pop(env_key, None)
+                    env.pop(env_key + "_NAME", None)
             
             # 删除顶层的旧配置（如果存在）
-            cfg.pop("ANTHROPIC_MODEL", None)
-            cfg.pop("ANTHROPIC_DEFAULT_SONNET_MODEL", None)
-            cfg.pop("ANTHROPIC_DEFAULT_OPUS_MODEL", None)
-            cfg.pop("ANTHROPIC_DEFAULT_HAIKU_MODEL", None)
-            cfg.pop("ANTHROPIC_DEFAULT_FABLE_MODEL", None)
+            for _, env_key in model_map.items():
+                cfg.pop(env_key, None)
             
             if save_config(cfg):
                 return {"ok": True, "msg": "模型配置已保存"}
@@ -622,6 +621,37 @@ class ApiBridge:
         except Exception as e:
             return {"ok": False, "msg": f"保存失败: {str(e)}"}
     
+    def reset_model_config(self):
+        """恢复模型默认配置（清除写死的模型，让 cc switch 等工具能正常工作）"""
+        try:
+            cfg = load_config()
+            env = cfg.get("env", {})
+            
+            # 只清除模型相关的 env key，保留 API 基础配置
+            model_keys = [
+                "ANTHROPIC_MODEL",
+                "ANTHROPIC_DEFAULT_SONNET_MODEL",
+                "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME",
+                "ANTHROPIC_DEFAULT_OPUS_MODEL",
+                "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME",
+                "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+                "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME",
+                "ANTHROPIC_DEFAULT_FABLE_MODEL",
+                "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME",
+                "CLAUDE_CODE_SUBAGENT_MODEL",
+            ]
+            
+            for key in model_keys:
+                env.pop(key, None)
+            
+            cfg["env"] = env
+            
+            if save_config(cfg):
+                return {"ok": True, "msg": "模型配置已恢复默认，cc switch 等工具现在可以正常切换模型了"}
+            return {"ok": False, "msg": "保存失败"}
+        except Exception as e:
+            return {"ok": False, "msg": f"恢复失败: {str(e)}"}
+
     def query_balance(self):
         """查询余额"""
         session_data = load_session()

@@ -908,6 +908,9 @@ body {
         <button class="btn btn-primary" onclick="saveModelConfig()">
           💾 保存模型配置
         </button>
+        <button class="btn" style="background: var(--red-dim); color: var(--red);" onclick="resetModelConfig()">
+          🔄 恢复默认
+        </button>
       </div>
     </div>
     
@@ -1275,6 +1278,29 @@ async function saveModelConfig() {
     }
   } catch (e) {
     showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+async function resetModelConfig() {
+  if (!confirm('确定要恢复默认模型配置吗？\n\n将清除 settings.json 中写死的所有模型设置，\n之后 cc switch 等工具就可以正常切换模型了。\n\n（API 地址和 Key 不受影响）')) return;
+  
+  try {
+    const data = await pywebview.api.reset_model_config();
+    if (data.ok) {
+      showToast(data.msg, 'success');
+      // 清空输入框
+      document.getElementById('model-default').value = '';
+      document.getElementById('model-sonnet').value = '';
+      document.getElementById('model-opus').value = '';
+      document.getElementById('model-haiku').value = '';
+      document.getElementById('model-fable').value = '';
+      // 刷新仪表盘
+      if (typeof loadDashboard === 'function') loadDashboard();
+    } else {
+      showToast('恢复失败: ' + data.msg, 'error');
+    }
+  } catch (e) {
+    showToast('恢复失败: ' + e.message, 'error');
   }
 }
 
